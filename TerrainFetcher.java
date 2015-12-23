@@ -90,7 +90,6 @@ public class TerrainFetcher {
             URLConnection connection = new URL(address + "?" + params).openConnection();
             connection.setRequestProperty("Accept-Charset", charset);
             InputStream response = connection.getInputStream();
-
             BufferedReader reader = new BufferedReader(new InputStreamReader(response));
             StringBuilder queryResult = new StringBuilder();
             String line;
@@ -107,6 +106,33 @@ public class TerrainFetcher {
 
 
         return "";
+    }
+
+   
+    /**
+     * Returns the distance between two coordinates in feet
+     * @param a
+     * @param b
+     * @return distance in feet
+     */
+    public static float distance(Point2D a, Point2D b) {
+
+        double lat1 = a.getY();
+        double lng1 = a.getX();
+        double lat2 = b.getY();
+        double lng2 = b.getX();
+
+        double earthRadius = 6371000; //meters
+        double dLat = Math.toRadians(lat2-lat1);
+        double dLng = Math.toRadians(lng2-lng1);
+        double d = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLng/2) * Math.sin(dLng/2);
+        double c = 2 * Math.atan2(Math.sqrt(d), Math.sqrt(1-d));
+        float dist = (float) (earthRadius * c);
+
+        // Convert to feet
+        return dist * 3.28084f;
     }
 
 //    private Integer mapWidth(Point2D topLeft, Point2D botRight) {
