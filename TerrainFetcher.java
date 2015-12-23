@@ -1,3 +1,5 @@
+import com.sun.xml.internal.xsom.impl.scd.Iterators;
+
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
@@ -24,9 +26,9 @@ public class TerrainFetcher {
     // provided
     //
     // Returns elevations within the boundaries
-    public Array<Integer> fetchTerrain(Point2D topLeft, Point2D topRight) {
+    public Iterators.Array<Integer> fetchTerrain(Point2D topLeft, Point2D topRight) {
 
-        
+        return null;
 
 
     }
