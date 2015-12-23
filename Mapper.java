@@ -24,9 +24,8 @@ public class Mapper {
 
         System.out.println("test test");
 
-        fetcher.fetchTerrain(topLeft, botRight);
-
-
+        //fetcher.fetchTerrain(topLeft, botRight);
+        System.out.println(fetcher.distance(topLeft, botRight));
 
 
         // Create the base layers of the generated world.

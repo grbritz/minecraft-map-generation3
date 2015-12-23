@@ -52,7 +52,7 @@ public class TerrainFetcher {
             // in the longitude direction
             Point.Double leftPt = new Point.Double(topLeft.getX(), topLeft.getY() - h * deltaLat);
             Point.Double rightPt = new Point.Double(botRight.getX(), leftPt.getY());
-            ArrayList<Point.Double> locations = new ArrayList<>();
+            ArrayList<Point.Double> locations = new ArrayList<Point.Double>();
             locations.add(leftPt);
             locations.add(rightPt);
 
@@ -115,24 +115,27 @@ public class TerrainFetcher {
      * @param b
      * @return distance in feet
      */
-    public static float distance(Point2D a, Point2D b) {
+    public double distance(Point2D a, Point2D b) {
 
         double lat1 = a.getY();
-        double lng1 = a.getX();
+        double lon1 = a.getX();
         double lat2 = b.getY();
-        double lng2 = b.getX();
+        double lon2 = b.getX();
 
-        double earthRadius = 6371000; //meters
-        double dLat = Math.toRadians(lat2-lat1);
-        double dLng = Math.toRadians(lng2-lng1);
-        double d = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLng/2) * Math.sin(dLng/2);
-        double c = 2 * Math.atan2(Math.sqrt(d), Math.sqrt(1-d));
-        float dist = (float) (earthRadius * c);
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        return (dist);
+    }
 
-        // Convert to feet
-        return dist * 3.28084f;
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    private double rad2deg(double rad) {
+        return (rad * 180.0 / Math.PI);
     }
 
 //    private Integer mapWidth(Point2D topLeft, Point2D botRight) {
