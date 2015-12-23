@@ -1,5 +1,6 @@
 import net.morbz.minecraft.blocks.DoorBlock;
 import net.morbz.minecraft.blocks.Material;
+import net.morbz.minecraft.blocks.SaplingBlock;
 import net.morbz.minecraft.blocks.SimpleBlock;
 import net.morbz.minecraft.blocks.states.Facing4State;
 import net.morbz.minecraft.level.FlatGenerator;
@@ -50,6 +51,7 @@ public class Mapper {
 
                 // Set grass
                 world.setBlock(x, 50, z, SimpleBlock.GRASS);
+                world.setBlock(x, 51, z, SaplingBlock.OAK_SAPLING);
             }
         }
 
