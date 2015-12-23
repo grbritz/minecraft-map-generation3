@@ -8,6 +8,7 @@ import net.morbz.minecraft.level.IGenerator;
 import net.morbz.minecraft.level.Level;
 import net.morbz.minecraft.world.DefaultLayers;
 import net.morbz.minecraft.world.World;
+import java.awt.Point;
 
 /**
  * Created by jordansoltman on 12/22/15.
@@ -15,6 +16,16 @@ import net.morbz.minecraft.world.World;
 public class Mapper {
 
     public static void main(String[] args) {
+
+        TerrainFetcher fetcher = new TerrainFetcher();
+        Point.Double topLeft = new Point.Double(-122.569313,47.521765);
+        Point.Double botRight = new Point.Double(-122.352333,47.315945);
+
+        System.out.println("test test");
+
+        fetcher.fetchTerrain(topLeft, botRight);
+
+
 
 
         // Create the base layers of the generated world.
