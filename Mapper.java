@@ -10,6 +10,7 @@ import net.morbz.minecraft.level.Level;
 import net.morbz.minecraft.world.DefaultLayers;
 import net.morbz.minecraft.world.World;
 import java.awt.Point;
+import java.util.List;
 
 /**
  * Created by jordansoltman on 12/22/15.
@@ -24,9 +25,9 @@ public class Mapper {
 
         System.out.println("test test");
 
-        fetcher.fetchTerrain(topLeft, botRight);
+        List<List<Double>> terrainData = fetchTerrain(topLeft, botRight);
 
-
+        System.out.println(terrainData);
 
 
         // Create the base layers of the generated world.

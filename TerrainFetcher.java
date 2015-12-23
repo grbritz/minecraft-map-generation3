@@ -1,3 +1,8 @@
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -37,13 +42,13 @@ public class TerrainFetcher {
     // provided
     //
     // Returns elevations within the boundaries
-    public List<List<Integer>> fetchTerrain(Point.Double topLeft, Point.Double botRight) {
+    public List<List<Double>> fetchTerrain(Point.Double topLeft, Point.Double botRight) {
         double conversion = maxResultsAvailable() / totalBlocks;
         int rowWidth = (int) (conversion * mapWidth);
         int numRows = (int) (conversion * mapHeight);
         double deltaLat = (topLeft.getY() - botRight.getY()) / numRows;
 
-        List<List<Integer>> results = new ArrayList<List<Integer>>(numRows);
+        List<List<Double>> results = new ArrayList<List<Double>>(numRows);
 
         //for(int h = 0; h < numRows; h++) {
         for(int h =0; h < 1; h++){
@@ -57,11 +62,30 @@ public class TerrainFetcher {
             locations.add(rightPt);
 
             String altitudesString = runQuery(locations, rowWidth);
+
+            JsonObject jsonObject = new JsonParser().parse(altitudesString).getAsJsonObject();
+
+            List<Double> elevations = getElevations(jsonObject);
+            results.add(elevations);
             //https://maps.googleapis.com/maps/api/elevation/json?locations=39.7391536,-104.9847034|36.455556,-116.866667&key=YOUR_API_KEY
 
         }
 
         return results;
+    }
+
+    private List<Double> getElevations(JsonObject queryResults) {
+        JsonArray results = queryResults.getAsJsonArray("results");
+
+        ArrayList<Double> elevations = new ArrayList<>();
+
+        for (JsonElement result: results) {
+            JsonObject currObj = result.getAsJsonObject();
+
+            elevations.add(currObj.get("elevation").getAsDouble());
+        }
+
+        return elevations;
     }
 
     //TODO: Add diff apiKey support
@@ -97,7 +121,7 @@ public class TerrainFetcher {
                 queryResult.append(line);
             }
 
-            System.out.println(queryResult);
+            //System.out.println(queryResult);
             return queryResult.toString();
         }
         catch(Exception e) {
@@ -108,7 +132,7 @@ public class TerrainFetcher {
         return "";
     }
 
-   
+
     /**
      * Returns the distance between two coordinates in feet
      * @param a
