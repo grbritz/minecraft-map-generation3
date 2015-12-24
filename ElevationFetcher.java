@@ -15,26 +15,30 @@ import java.util.List;
 import java.awt.Point;
 
 
+// "AIzaSyD-kSmZg5MlVGNolit43y2DMqROfpL41Uc"
+
 /**
  * Created by grbritz on 12/22/15.
  */
-public class TerrainFetcher {
+public class ElevationFetcher {
     // Sample URL: https://maps.googleapis.com/maps/api/elevation/json?locations=39.7391536,-104.9847034|36.455556,-116.866667&key=YOUR_API_KEY
 
-    private final ArrayList<String> ApiKeys;
+    private final List<String> ApiKeys;
     private final Integer samplesPerKey = 2500;
     private final Integer resultsPerSample = 512;
+
     private final double mapWidth = 10.15 * 5280; //10 miles wide * 5280 ft/mile
     private final double mapHeight = 14.22 * 5280; // 14 miles high * 5280 ft/mile
     private final double blockSize = 2.5; // 2.5 ft
     private final double totalBlocks = (mapWidth * mapHeight) / blockSize;
 
 
+    private Properties propList;
 
-    public TerrainFetcher() {
-        ApiKeys = new ArrayList<String>();
-        ApiKeys.add("AIzaSyD-kSmZg5MlVGNolit43y2DMqROfpL41Uc");
 
+    public ElevationFetcher(Properties propList, List<String> apiKeys) {
+        ApiKeys = apiKeys;
+        this.propList = propList;
     }
 
 
@@ -42,38 +46,69 @@ public class TerrainFetcher {
     // provided
     //
     // Returns elevations within the boundaries
-    public List<List<Double>> fetchTerrain(Point.Double topLeft, Point.Double botRight) {
-        double conversion = maxResultsAvailable() / totalBlocks;
-        int rowWidth = (int) (conversion * mapWidth);
-        int numRows = (int) (conversion * mapHeight);
-        double deltaLat = (topLeft.getY() - botRight.getY()) / numRows;
+    public List<List<Double>> fetchElevations() {
+        int scaledCols = (int) (propList.worldCols() * blockDensityRatio());
+        int scaledRows = (int) (propList.worldRows() * blockDensityRatio());
 
-        List<List<Double>> results = new ArrayList<List<Double>>(numRows);
+        Point2D upperLeft = propList.getUpperLeft();
 
-        //for(int h = 0; h < numRows; h++) {
-        for(int h =0; h < 1; h++){
-            // interpolate new y coordinate (latitude value), the google api
-            // will interpolate the points between our left and right pt
-            // in the longitude direction
-            Point.Double leftPt = new Point.Double(topLeft.getX(), topLeft.getY() - h * deltaLat);
-            Point.Double rightPt = new Point.Double(botRight.getX(), leftPt.getY());
-            ArrayList<Point.Double> locations = new ArrayList<>();
-            locations.add(leftPt);
-            locations.add(rightPt);
+        List<List<Double>> elevationsList = new ArrayList<>();
 
-            String altitudesString = runQuery(locations, rowWidth);
 
-            JsonObject jsonObject = new JsonParser().parse(altitudesString).getAsJsonObject();
+        for(int row = 0; row < scaledRows; row++) {
+            double rowOffset = propList.realWorldHeight() / scaledRows;
 
-            List<Double> elevations = getElevations(jsonObject);
-            results.add(elevations);
-            //https://maps.googleapis.com/maps/api/elevation/json?locations=39.7391536,-104.9847034|36.455556,-116.866667&key=YOUR_API_KEY
+            // Number of requests for this row
+            int numRequests = (int) Math.ceil((double)scaledCols / resultsPerSample);
 
+            // TODO: This is northern hemisphere only atm
+            double currY = upperLeft.getY() - row * rowOffset;
+            
+            List<Double> elevationsRow = new ArrayList<>();
+
+            double leftOffset = 0;
+            for(int request = 0; request < numRequests; request++) {
+                try {
+                    Thread.sleep(200);
+                } catch(InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+
+
+                int numSamples = Math.min(scaledCols - request * resultsPerSample, resultsPerSample);
+                double coordOffset = (double)numSamples/scaledCols * propList.realWorldWidth();
+
+                Point2D.Double leftPt =  new Point2D.Double(upperLeft.getX() + leftOffset, currY);
+                Point2D.Double rightPt =  new Point2D.Double(leftPt.getX() + coordOffset, currY);
+
+                ArrayList<Point.Double> locations = new ArrayList<Point.Double>();
+                locations.add(leftPt);
+                locations.add(rightPt);
+
+                String altitudesString = runQuery(locations, numSamples);
+                System.out.println(altitudesString);
+                JsonObject jsonObject = new JsonParser().parse(altitudesString).getAsJsonObject();
+                List<Double> elevations = getElevations(jsonObject);
+                
+                elevationsRow.addAll(elevations);
+                leftOffset += coordOffset;
+
+            }
+            
+            elevationsList.add(elevationsRow);
         }
-
-        return results;
+        return elevationsList;
     }
 
+    public double blockDensityRatio() {
+        return (double) totalSamples() / propList.totalBlocks();
+    }
+
+    private int totalSamples() {
+        int maxSamples = ApiKeys.size() * samplesPerKey * resultsPerSample;
+        return Math.min(propList.totalBlocks(), maxSamples);
+    }
+//
     private List<Double> getElevations(JsonObject queryResults) {
         JsonArray results = queryResults.getAsJsonArray("results");
 
@@ -82,12 +117,15 @@ public class TerrainFetcher {
         for (JsonElement result: results) {
             JsonObject currObj = result.getAsJsonObject();
 
-            elevations.add(currObj.get("elevation").getAsDouble());
+            double elevationSample = currObj.get("elevation").getAsDouble();
+
+            // Offset by 1 meter because of errors in the data - EMPIRCAL
+            elevations.add(elevationSample - 1);
         }
 
         return elevations;
     }
-
+//
     //TODO: Add diff apiKey support
     private String runQuery(List<Point.Double> locationsLine, int numSamples) {
         String address = "https://maps.googleapis.com/maps/api/elevation/json";
@@ -131,44 +169,4 @@ public class TerrainFetcher {
 
         return "";
     }
-
-
-    /**
-     * Returns the distance between two coordinates in feet
-     * @param a
-     * @param b
-     * @return distance in feet
-     */
-    public static float distance(Point2D a, Point2D b) {
-
-        double lat1 = a.getY();
-        double lng1 = a.getX();
-        double lat2 = b.getY();
-        double lng2 = b.getX();
-
-        double earthRadius = 6371000; //meters
-        double dLat = Math.toRadians(lat2-lat1);
-        double dLng = Math.toRadians(lng2-lng1);
-        double d = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLng/2) * Math.sin(dLng/2);
-        double c = 2 * Math.atan2(Math.sqrt(d), Math.sqrt(1-d));
-        float dist = (float) (earthRadius * c);
-
-        // Convert to feet
-        return dist * 3.28084f;
-    }
-
-//    private Integer mapWidth(Point2D topLeft, Point2D botRight) {
-//        return abs(botRight.getX() - topLeft.getX());
-//    }
-//
-//    private Integer mapHeight(Point2D topleft, point2D botRight) {
-//        return abs(topLeft.getY() - botRight.getY());
-//    }
-
-    private Integer maxResultsAvailable() {
-        return ApiKeys.size() * samplesPerKey * resultsPerSample;
-    }
-
 }

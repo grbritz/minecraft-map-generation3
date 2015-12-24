@@ -1,7 +1,4 @@
-import net.morbz.minecraft.blocks.DoorBlock;
-import net.morbz.minecraft.blocks.Material;
-import net.morbz.minecraft.blocks.SaplingBlock;
-import net.morbz.minecraft.blocks.SimpleBlock;
+import net.morbz.minecraft.blocks.*;
 import net.morbz.minecraft.blocks.states.Facing4State;
 import net.morbz.minecraft.level.FlatGenerator;
 import net.morbz.minecraft.level.GameType;
@@ -9,8 +6,12 @@ import net.morbz.minecraft.level.IGenerator;
 import net.morbz.minecraft.level.Level;
 import net.morbz.minecraft.world.DefaultLayers;
 import net.morbz.minecraft.world.World;
-import java.awt.Point;
+
+import java.awt.geom.Point2D;
+import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * Created by jordansoltman on 12/22/15.
@@ -19,15 +20,25 @@ public class Mapper {
 
     public static void main(String[] args) {
 
-        TerrainFetcher fetcher = new TerrainFetcher();
-        Point.Double topLeft = new Point.Double(-122.569313,47.521765);
-        Point.Double botRight = new Point.Double(-122.352333,47.315945);
+        Properties propList = new Properties(
+                new Point2D.Double(-122.468627, 47.394935),
+                new Point2D.Double(-122.446226, 47.382558),
+                1
+        );
 
-        System.out.println("test test");
+//        ArrayList<String> apiKeys = new ArrayList<>();
+//        apiKeys.add("AIzaSyD2qrOqFQ2bJ-jTlr6ZVxwOrgPjHhdOZOY");
+//        ElevationFetcher fetcher = new ElevationFetcher(propList, apiKeys);
+//
+//
+//        List<List<Double>> terrainData = fetcher.fetchElevations();
 
-        List<List<Double>> terrainData = fetchTerrain(topLeft, botRight);
+//        WriterReader.write2DArray(terrainData, "test1");
 
-        System.out.println(terrainData);
+
+        List<List<Double>> terrainData = WriterReader.read2DArray("test1");
+
+
 
 
         // Create the base layers of the generated world.
@@ -35,7 +46,7 @@ public class Mapper {
 // blocks.
         DefaultLayers layers = new DefaultLayers();
         layers.setLayer(0, Material.BEDROCK);
-        layers.setLayers(1, 20, Material.MELON_BLOCK);
+       layers.setLayers(1, 2, Material.WATER);
 
 // Create the internal Minecraft world generator.
 // We use a flat generator. We do this to make sure that the whole world will be paved
@@ -54,23 +65,37 @@ public class Mapper {
 
 // Create a huge structure of glass that has an area of 100x100 blocks and is 50 blocks
 // height. On top of the glass structure we put a layer of grass.
-        for(int x = 0; x < 100; x++) {
-            for(int z = 0; z < 100; z++) {
-                // Set glass
-                for(int y = 0; y < 50; y++) {
-                    world.setBlock(x, y, z, SimpleBlock.GLASS);
-                }
+        for(int y = 0; y < terrainData.size(); y++) {
+            List<Double> elevationList = terrainData.get(y);
+            for(int x = 0; x < terrainData.get(0).size(); x++) {
 
-                // Set grass
-                world.setBlock(x, 50, z, SimpleBlock.GRASS);
-                world.setBlock(x, 51, z, SaplingBlock.OAK_SAPLING);
+                int height = elevationList.get(x).intValue() + 2;
+
+                if(height < 4) {
+                    for(int h = height - 1; h < 2; h++) {
+                        world.setBlock(x, h, y, SimpleBlock.WATER);
+                    }
+                }
+                world.setBlock(x, height, y, SimpleBlock.GRASS);
+
+
+
+
+//                // Set glass
+//                for(int y = 0; y < 50; y++) {
+//                    world.setBlock(x, y, z, SimpleBlock.GLASS);
+//                }
+//
+//                // Set grass
+//                world.setBlock(x, 50, z, SimpleBlock.GRASS);
+//                world.setBlock(x, 51, z, SaplingBlock.OAK_SAPLING);
             }
         }
 
 // Now we create the door. It consists of 2 blocks, that's why we can't use a SimpleBlock
 // here.
-        world.setBlock(50, 51, 50, DoorBlock.makeLower(DoorBlock.DoorMaterial.OAK, Facing4State.EAST, false));
-        world.setBlock(50, 52, 50, DoorBlock.makeUpper(DoorBlock.DoorMaterial.OAK, DoorBlock.HingeSide.LEFT));
+//        world.setBlock(50, 51, 50, DoorBlock.makeLower(DoorBlock.DoorMaterial.OAK, Facing4State.EAST, false));
+//        world.setBlock(50, 52, 50, DoorBlock.makeUpper(DoorBlock.DoorMaterial.OAK, DoorBlock.HingeSide.LEFT));
 
 // Everything's set up so we're going to save the world.
         try{
